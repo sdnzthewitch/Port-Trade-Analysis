@@ -1,0 +1,80 @@
+---
+title: "Grafiksel Veri Analizi Ödev"
+author: "Sudenaz Baysağ"
+date: "11 05 2025"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## R Markdown
+
+
+```{r , include=FALSE}
+library(tidyverse)
+library(readxl)
+library(plotly)
+
+```
+
+# Veri setini yükle ve temizle
+
+```{r, echo = TRUE}
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(scales)
+
+data_long <- read_xlsx("C:/Users/DELL/Desktop/Grafiksel Veri Analizi/dış ticaret hacmi verisi.xlsx") %>%
+  select(Country = `Country`, `2018`:`2024`) %>%
+  pivot_longer(-Country, names_to = "Year", values_to = "TradeVolume") %>%
+  # Ticaret hacmini temizle ve sayısallaştır
+  mutate(TradeVolume = as.numeric(gsub(",", ".", gsub("K", "", TradeVolume)))) %>%
+  group_by(Country) %>%
+  arrange(Year) %>%
+  mutate(Change = (TradeVolume - lag(TradeVolume)) / lag(TradeVolume) * 100) %>%
+  drop_na() %>%
+  mutate(Standardized_Change = scale(Change)[,1])
+
+```
+
+# KDE grafiği: Ülkelerin Standartlaştırılmış Değişimlerinin Yoğunluk Grafiği
+
+```{r pressure}
+p2 <- ggplot(data_long, aes(x = Standardized_Change, fill = Country, text = Country)) +
+  geom_density(alpha = 0.5) +
+  labs(
+    title = "Interaktif Kernel Density Plot",
+    x = "Standardized Annual Change (%)", y = "Density"
+  ) +
+  theme_minimal()
+
+ggplotly(p2) %>% layout(legend = list(title = list(text = "Country")))
+
+ggplot(data_long, aes(x = Standardized_Change, fill = Country)) +
+  geom_density(alpha = 0.6, color = NA) +
+  facet_wrap(~ Country, scales = "free_y") +
+  theme_minimal() +
+  labs(
+    title = "Ülke Bazında Kernel Density Plot",
+    x = "Standardized Annual Change (%)", y = "Density"
+  )
+
+```
+
+
+```{r , include=FALSE}
+library(ggplot2)
+library(treemapify)
+```
+
+
+
+```{r , include=FALSE}
+df<- data.frame("Country" , "TradeVolume" )
+
+ggplot2::ggplot(df,aes(area=Country,fill=TradeVolume))+
+  treemapify::geom_treemap()
+```
